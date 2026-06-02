@@ -543,23 +543,48 @@ function pctInt(v) {
 }
 function authData() { return currentData(); }
 function defaultMerchantAccounts() {
+  const aliasMap = {
+    '厦门甄选好物传媒有限公司': ['厦', '厦门', '甄', '甄选', 'xiamen', 'xiamenzhenxuan', 'xmzx', 'zhenxuan'],
+    '杭州如是电子商务有限公司': ['杭', '杭州', '如', '如是', 'hangzhou', 'hangzhourushi', 'hzrs', 'rushi'],
+    '莆田市康德发电子商务有限公司': ['莆', '莆田', '康', '康德发', 'putian', 'putiankangdefa', 'ptkdf', 'kangdefa'],
+    '小鹅电商': ['小', '小鹅', '鹅', 'xiaoe', 'xeds', 'xiao'],
+    '合肥邦鑫服饰有限公司': ['合', '合肥', '邦', '邦鑫', 'hefei', 'hefeibangxin', 'hfbx', 'bangxin'],
+  };
   const clients = authData().clients.map(c => c.name).slice(0, 5);
-  return clients.map(name => ({ username: name, password: 'vip2026', clientName: name }));
+  return clients.map(name => ({ username: name, password: 'vip2026', clientName: name, aliases: aliasMap[name] || [] }));
 }
 function getMerchantAccounts() {
+  const defaults = defaultMerchantAccounts();
   const saved = localStorage.getItem('paopinMerchantAccounts');
-  if (saved) { try { return JSON.parse(saved); } catch(e) {} }
-  const accounts = defaultMerchantAccounts();
-  localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts));
-  return accounts;
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      const merged = [...parsed];
+      defaults.forEach(def => {
+        const existing = merged.find(a => a.username === def.username);
+        if (existing) existing.aliases = Array.from(new Set([...(existing.aliases || []), ...(def.aliases || [])]));
+        else merged.push(def);
+      });
+      localStorage.setItem('paopinMerchantAccounts', JSON.stringify(merged));
+      return merged;
+    } catch(e) {}
+  }
+  localStorage.setItem('paopinMerchantAccounts', JSON.stringify(defaults));
+  return defaults;
 }
 function setMerchantAccounts(accounts) { localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts)); }
+function normalizeQuery(text) {
+  return String(text || '').toLowerCase().replace(/\s+/g, '');
+}
+function accountSearchText(account) {
+  return normalizeQuery([account.username, account.clientName, ...(account.aliases || [])].join('|'));
+}
 function renderMerchantSuggestions(query) {
   const box = document.getElementById('merchantSuggestions');
   if (!box) return;
-  const q = (query || '').trim();
-  if (q.length < 2) { box.classList.remove('show'); box.innerHTML = ''; return; }
-  const matches = getMerchantAccounts().filter(a => a.username.includes(q)).slice(0, 5);
+  const q = normalizeQuery(query);
+  if (!q) { box.classList.remove('show'); box.innerHTML = ''; return; }
+  const matches = getMerchantAccounts().filter(a => accountSearchText(a).includes(q)).slice(0, 5);
   if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
   box.innerHTML = matches.map(a => `<button type="button" class="suggestion-item" data-user="${esc(a.username)}">${esc(a.username)}</button>`).join('');
   box.classList.add('show');
