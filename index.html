@@ -201,6 +201,10 @@
     .auth-field label { font-size: 12px; color: var(--muted); font-weight: 680; }
     .auth-field input, .auth-field select { width: 100%; border: 1px solid rgba(23,32,51,.14); border-radius: 16px; padding: 12px 13px; background: #fff; color: var(--ink); font: inherit; outline: none; }
     .auth-field input:focus, .auth-field select:focus { border-color: rgba(30,90,167,.45); box-shadow: 0 0 0 4px rgba(30,90,167,.10); }
+    .suggestion-box { display:none; margin-top:8px; border:1px solid rgba(23,32,51,.10); border-radius:16px; background:#fff; box-shadow:0 16px 36px rgba(23,32,51,.10); overflow:hidden; }
+    .suggestion-box.show { display:block; }
+    .suggestion-item { width:100%; border:0; background:#fff; text-align:left; padding:11px 13px; color:var(--ink); font:inherit; cursor:pointer; }
+    .suggestion-item:hover { background:rgba(234,242,255,.72); }
     .auth-button { width: 100%; margin-top: 12px; border: 0; border-radius: 16px; padding: 13px 15px; color: #fff; background: var(--ink); font: inherit; font-weight: 760; cursor: pointer; }
     .auth-error { min-height: 20px; margin-top: 10px; color: var(--red); font-size: 12px; }
     .manual-user { display: none; }
@@ -228,9 +232,7 @@
         <button class="auth-tab active" data-auth-tab="external">外部商家客户</button>
       </div>
       <div class="auth-panel active" id="externalPanel">
-        <div class="auth-field"><label>商家用户名</label><select id="merchantSelect"></select></div>
-        <div class="auth-field manual-user" id="manualUserField"><label>手动输入用户名</label><input id="manualUsername" type="text" placeholder="请输入商家用户名" /></div>
-        <div class="fake-filter" id="fakeFilter">正在打开商家检索面板。若未在下拉列表中看到账号，请联系对应销售开通访问权限。</div>
+        <div class="auth-field"><label>商家用户名</label><input id="merchantUsername" type="text" autocomplete="off" placeholder="输入用户名前两个字后选择" /><div class="suggestion-box" id="merchantSuggestions"></div></div>
         <div class="auth-field"><label>商家访问密码</label><input id="merchantPassword" type="password" autocomplete="current-password" placeholder="请输入商家访问密码" /></div>
         <button class="auth-button" id="externalLoginBtn">进入商家版门户</button>
       </div>
@@ -552,10 +554,25 @@ function getMerchantAccounts() {
   return accounts;
 }
 function setMerchantAccounts(accounts) { localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts)); }
-function populateMerchantSelect() {
-  const select = document.getElementById('merchantSelect');
-  const accounts = getMerchantAccounts();
-  select.innerHTML = accounts.slice(0, 5).map(a => `<option value="${esc(a.username)}">${esc(a.username)}</option>`).join('') + '<option value="__more__">更多</option>';
+function renderMerchantSuggestions(query) {
+  const box = document.getElementById('merchantSuggestions');
+  if (!box) return;
+  const q = (query || '').trim();
+  if (q.length < 2) { box.classList.remove('show'); box.innerHTML = ''; return; }
+  const matches = getMerchantAccounts().filter(a => a.username.includes(q)).slice(0, 5);
+  if (!matches.length) { box.classList.remove('show'); box.innerHTML = ''; return; }
+  box.innerHTML = matches.map(a => `<button type="button" class="suggestion-item" data-user="${esc(a.username)}">${esc(a.username)}</button>`).join('');
+  box.classList.add('show');
+  box.querySelectorAll('.suggestion-item').forEach(btn => btn.onclick = () => {
+    document.getElementById('merchantUsername').value = btn.dataset.user;
+    box.classList.remove('show');
+  });
+}
+function setupMerchantAutocomplete() {
+  const input = document.getElementById('merchantUsername');
+  if (!input) return;
+  input.addEventListener('input', () => renderMerchantSuggestions(input.value));
+  input.addEventListener('blur', () => setTimeout(() => document.getElementById('merchantSuggestions')?.classList.remove('show'), 160));
 }
 function setAuthTab(tab) {
   document.querySelectorAll('.auth-tab').forEach(btn => btn.classList.toggle('active', btn.dataset.authTab === tab));
@@ -625,23 +642,17 @@ function renderDevUsers() {
   const list = document.getElementById('devUserList');
   const accounts = getMerchantAccounts();
   list.innerHTML = accounts.map((a, idx) => `<div class="dev-row"><input value="${esc(a.username)}" data-dev-user="${idx}" /><input value="${esc(a.password)}" data-dev-pass="${idx}" /><button data-dev-del="${idx}">删除</button></div>`).join('');
-  list.querySelectorAll('[data-dev-del]').forEach(btn => btn.onclick = () => { const arr = getMerchantAccounts(); arr.splice(Number(btn.dataset.devDel), 1); setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers(); });
-  list.querySelectorAll('[data-dev-user]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); const i = Number(input.dataset.devUser); arr[i].username = input.value.trim(); arr[i].clientName = input.value.trim(); setMerchantAccounts(arr); populateMerchantSelect(); renderDevUsers(); });
+  list.querySelectorAll('[data-dev-del]').forEach(btn => btn.onclick = () => { const arr = getMerchantAccounts(); arr.splice(Number(btn.dataset.devDel), 1); setMerchantAccounts(arr); renderMerchantSuggestions(document.getElementById('merchantUsername')?.value || ''); renderDevUsers(); });
+  list.querySelectorAll('[data-dev-user]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); const i = Number(input.dataset.devUser); arr[i].username = input.value.trim(); arr[i].clientName = input.value.trim(); setMerchantAccounts(arr); renderMerchantSuggestions(document.getElementById('merchantUsername')?.value || ''); renderDevUsers(); });
   list.querySelectorAll('[data-dev-pass]').forEach(input => input.onchange = () => { const arr = getMerchantAccounts(); arr[Number(input.dataset.devPass)].password = input.value; setMerchantAccounts(arr); });
 }
 function openDevModal() { document.getElementById('devModal').classList.add('open'); }
 function setupAuth() {
-  populateMerchantSelect();
+  setupMerchantAutocomplete();
   document.getElementById('externalPanel')?.classList.add('active');
   document.querySelector('[data-auth-tab="external"]')?.classList.add('active');
-  document.getElementById('merchantSelect').onchange = e => {
-    const more = e.target.value === '__more__';
-    document.getElementById('manualUserField').classList.toggle('show', more);
-    document.getElementById('fakeFilter').classList.toggle('show', more);
-  };
   document.getElementById('externalLoginBtn').onclick = () => {
-    const selected = document.getElementById('merchantSelect').value;
-    const username = selected === '__more__' ? document.getElementById('manualUsername').value.trim() : selected;
+    const username = document.getElementById('merchantUsername').value.trim();
     const password = document.getElementById('merchantPassword').value;
     const account = getMerchantAccounts().find(a => a.username === username && a.password === password);
     if (account) enterExternal(account.clientName || account.username);
