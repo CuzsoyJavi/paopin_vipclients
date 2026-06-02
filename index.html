@@ -632,7 +632,8 @@ function renderDevUsers() {
 function openDevModal() { document.getElementById('devModal').classList.add('open'); }
 function setupAuth() {
   populateMerchantSelect();
-  setAuthTab('external');
+  document.getElementById('externalPanel')?.classList.add('active');
+  document.querySelector('[data-auth-tab="external"]')?.classList.add('active');
   document.getElementById('merchantSelect').onchange = e => {
     const more = e.target.value === '__more__';
     document.getElementById('manualUserField').classList.toggle('show', more);
