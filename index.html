@@ -359,7 +359,7 @@ function renderOverviewCards() {
   const data = currentData();
   const el = document.getElementById('overviewCards');
   el.innerHTML = ['CID', '小店'].map(link => {
-    const text = data.internal.overallText[link] || '';
+    const text = data.internal.overallText?.[link] || '';
     const delta = data.internal.overallDelta?.[link] || {};
     const spend = metricFromText(text, '消耗');
     const roi = metricFromText(text, '下单ROI');
@@ -369,13 +369,13 @@ function renderOverviewCards() {
 function renderFluctuation() {
   const data = currentData();
   const box = document.getElementById('fluctuationCards');
-  const running = data.internal.fluctuation.running || [];
+  const running = data.internal.fluctuation?.running || [];
   box.innerHTML = `<div class="card panel"><div class="metric-title" style="margin-bottom:12px;">跑品客户链路波动</div><div class="table-wrap"><table>${tableHTML(running)}</table></div></div>`;
   renderAnomalyTable();
 }
 function renderAnomalyTable() {
   const data = currentData();
-  const rows = data.internal.fluctuation[state.anomalyView] || [];
+  const rows = data.internal.fluctuation?.[state.anomalyView] || [];
   const cols = ['排名', '客户简称', '消耗(万元)', '消耗环比变化量', '消耗环比变化率', '消耗周同比变化率', '下单ROI', '下单ROI日环比', 'CTCVR(‱)', 'CTCVR日环比', '目标出价(元)', '目标出价日环比', '曝光创意唯一性ID数', '曝光创意ID日环比'];
   document.getElementById('anomalyTable').innerHTML = tableHTML(rows, cols);
 }
@@ -686,7 +686,7 @@ function setupAuth() {
   document.getElementById('devCloseBtn').onclick = () => document.getElementById('devModal').classList.remove('open');
 }
 
-function init() { renderAll(); wireStaticEvents(); setupAuth(); }
+function init() { try { renderAll(); wireStaticEvents(); } catch (error) { console.warn('External pre-render skipped', error); } setupAuth(); }
 init();
 </script>
 </body>
