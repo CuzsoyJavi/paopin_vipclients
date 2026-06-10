@@ -549,29 +549,11 @@ function defaultMerchantAccounts() {
           "zaiyi"
       ]
   };
-  const clients = authData().clients.map(c => c.name).slice(0, 5);
-  return clients.map(name => ({ username: name, password: 'vip2026', clientName: name, aliases: aliasMap[name] || [] }));
+  return [{"username": "杭州盈阳", "password": "ttz123456", "clientName": "杭州盈阳", "aliases": ["杭", "杭州", "盈", "盈阳", "hangzhou", "hangzhouyingyang", "hzyy", "yingyang"]}, {"username": "杭州麦量", "password": "mailiang888888", "clientName": "杭州麦量", "aliases": ["杭", "杭州", "麦", "麦量", "hangzhou", "hangzhoumailiang", "hzml", "mailiang"]}, {"username": "深圳载亿", "password": "145999ba", "clientName": "深圳载亿", "aliases": ["深", "深圳", "载", "载亿", "shenzhen", "shenzhenzaiyi", "szzy", "zaiyi"]}, {"username": "厦门秋成", "password": "Lqkj8888", "clientName": "厦门秋成", "aliases": ["厦", "厦门", "秋", "秋成", "xiamen", "xiamenqiucheng", "xmqc", "qiucheng"]}, {"username": "杭州与象", "password": "yx17638138856", "clientName": "杭州与象", "aliases": ["杭", "杭州", "与", "与象", "hangzhou", "hangzhouyuxiang", "hzyx", "yuxiang"]}, {"username": "俞俊", "password": "dahe2026", "clientName": "俞俊", "aliases": ["俞", "俞俊", "yujun", "yj"]}, {"username": "邀购", "password": "Yao123456.", "clientName": "邀购", "aliases": ["邀", "邀购", "yaogou", "yg"]}, {"username": "晴暮", "password": "blbmskj888.", "clientName": "晴暮", "aliases": ["晴", "晴暮", "qingmu", "qm"]}, {"username": "小鹅", "password": "xiaoe123456", "clientName": "小鹅", "aliases": ["小", "小鹅", "鹅", "xiaoe", "xeds", "xe"]}, {"username": "二两", "password": "Erliang666", "clientName": "二两", "aliases": ["二", "二两", "erliang", "el"]}];
 }
 function getMerchantAccounts() {
-  const defaults = defaultMerchantAccounts();
-  const saved = localStorage.getItem('paopinMerchantAccounts');
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      const merged = [...parsed];
-      defaults.forEach(def => {
-        const existing = merged.find(a => a.username === def.username);
-        if (existing) existing.aliases = Array.from(new Set([...(existing.aliases || []), ...(def.aliases || [])]));
-        else merged.push(def);
-      });
-      localStorage.setItem('paopinMerchantAccounts', JSON.stringify(merged));
-      return merged;
-    } catch(e) {}
-  }
-  localStorage.setItem('paopinMerchantAccounts', JSON.stringify(defaults));
-  return defaults;
+  return defaultMerchantAccounts();
 }
-function setMerchantAccounts(accounts) { localStorage.setItem('paopinMerchantAccounts', JSON.stringify(accounts)); }
 function normalizeQuery(text) {
   return String(text || '').toLowerCase().replace(/\s+/g, '');
 }
